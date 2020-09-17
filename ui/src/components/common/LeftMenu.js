@@ -129,7 +129,7 @@ class LeftMenu extends Component {
         );
       } else if (search) {
         menuItems.push(
-            <Link to={href} key={`key-${(keyVal += 1)}`} onClick={() => changeSearch(search)}>
+            <Link to={href} key={`key-${(keyVal += 1)}`} onClick={() => updateSearchAndFetch(search)}>
               <div className="menuItem">
                 <i className={iconClass} style={{ width: '20px' }} />
                 <span style={{ marginLeft: '10px', display }}>{label}</span>
