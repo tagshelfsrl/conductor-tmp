@@ -18,25 +18,24 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 variables:
-  tagshelfRegistry: 'docker.tagshelf.io'
   conductorServer: 'tagshelfsrl/conductor-server'
   conductorUI: 'tagshelfsrl/conductor-ui'
 
 steps:
   # Builds the docker image for all allowed branches
   - script: |
-      docker login -u $(tagshelfRegistryUser) -p $(tagshelfRegistryPass) $(tagshelfRegistry)
+      docker login -u $(registryUser) -p $(registryPass) $(registry)
       cd docker; docker-compose build ; cd -
     displayName: 'docker build'
   # Tags builded image with the "latest" tag if its "master" branch and push
   - script: |
-          docker tag conductor:server "$(tagshelfRegistry)/$(conductorServer):latest"
-          docker tag conductor:ui "$(tagshelfRegistry)/$(conductorUI):latest"
+          docker tag conductor:server "$(registry)/$(conductorServer):latest"
+          docker tag conductor:ui "$(registry)/$(conductorUI):latest"
     displayName: 'docker tag master as latest'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
   - script: |
-      docker login -u $(tagshelfRegistryUser) -p $(tagshelfRegistryPass) $(tagshelfRegistry)
-      docker push $(tagshelfRegistry)/$(conductorServer):latest
-      docker push $(tagshelfRegistry)/$(conductorUI):latest
+      docker login -u $(registryUser) -p $(registryPass) $(registry)
+      docker push $(registry)/$(conductorServer):latest
+      docker push $(registry)/$(conductorUI):latest
     displayName: 'docker push master as latest'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
