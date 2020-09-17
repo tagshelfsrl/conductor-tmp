@@ -18,8 +18,11 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 variables:
-  conductorServer: 'tagshelfsrl/conductor-server'
-  conductorUI: 'tagshelfsrl/conductor-ui'
+  - group: tagshelf
+  - name: conductorServer
+    value: 'tagshelfsrl/conductor-server'
+  - name: conductorUI
+    value: 'tagshelfsrl/conductor-ui'
 
 steps:
   # Builds the docker image for all allowed branches
