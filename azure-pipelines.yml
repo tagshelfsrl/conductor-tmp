@@ -36,6 +36,7 @@ steps:
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
   - script: |
       docker login -u $(tagshelfRegistryUser) -p $(tagshelfRegistryPass) $(tagshelfRegistry)
-      docker push $(tagshelfRegistry)/$(imageName):latest
+      docker push $(tagshelfRegistry)/$(conductorServer):latest
+      docker push $(tagshelfRegistry)/$(conductorUI):latest
     displayName: 'docker push master as latest'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
