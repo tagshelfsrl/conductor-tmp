@@ -1,34 +1,29 @@
 /*
- * Copyright 2016 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
  * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.netflix.conductor.common.metadata.workflow;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.github.vmg.protogen.annotations.*;
-import com.google.common.base.Preconditions;
-
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * @author Viren
- *
- */
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
+import com.netflix.conductor.annotations.protogen.ProtoField;
+import com.netflix.conductor.annotations.protogen.ProtoMessage;
+
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+
 @ProtoMessage
 public class SubWorkflowParams {
 
@@ -43,7 +38,8 @@ public class SubWorkflowParams {
     @ProtoField(id = 3)
     private Map<String, String> taskToDomain;
 
-    // workaround as WorkflowDef cannot directly be used due to cyclic dependency issue in protobuf imports
+    // workaround as WorkflowDef cannot directly be used due to cyclic dependency issue in protobuf
+    // imports
     @ProtoField(id = 4)
     private Object workflowDefinition;
 
@@ -116,8 +112,10 @@ public class SubWorkflowParams {
      * @param workflowDef the workflowDefinition to set
      */
     public void setWorkflowDefinition(Object workflowDef) {
-        Preconditions.checkArgument(workflowDef == null || workflowDef instanceof WorkflowDef,
-            "workflowDefinition must be either null or WorkflowDef");
+        if (!(workflowDef == null || workflowDef instanceof WorkflowDef)) {
+            throw new IllegalArgumentException(
+                    "workflowDefinition must be either null or WorkflowDef");
+        }
         this.workflowDefinition = workflowDef;
     }
 
@@ -138,9 +136,9 @@ public class SubWorkflowParams {
             return false;
         }
         SubWorkflowParams that = (SubWorkflowParams) o;
-        return Objects.equals(getName(), that.getName()) &&
-            Objects.equals(getVersion(), that.getVersion()) &&
-            Objects.equals(getTaskToDomain(), that.getTaskToDomain()) &&
-            Objects.equals(getWorkflowDefinition(), that.getWorkflowDefinition());
+        return Objects.equals(getName(), that.getName())
+                && Objects.equals(getVersion(), that.getVersion())
+                && Objects.equals(getTaskToDomain(), that.getTaskToDomain())
+                && Objects.equals(getWorkflowDefinition(), that.getWorkflowDefinition());
     }
 }
