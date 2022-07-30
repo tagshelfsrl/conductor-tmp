@@ -4,41 +4,41 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- master
-- development
-- feature/*
-- bugfix/*
-- hotfix/*
+  - master
+  - development
+  - feature/*
+  - bugfix/*
+  - hotfix/*
 
 pr:
-- master
-- develop
+  - master
+  - develop
 
 pool:
-  vmImage: 'Ubuntu-16.04'
+  vmImage: "Ubuntu-18.04"
 
 variables:
   - group: tagshelf
   - name: conductorServer
-    value: 'tagshelfsrl/conductor-server'
+    value: "tagshelfsrl/conductor-server"
   - name: conductorUI
-    value: 'tagshelfsrl/conductor-ui'
+    value: "tagshelfsrl/conductor-ui"
 
 steps:
   # Builds the docker image for all allowed branches
   - script: |
       docker login -u $(registryUser) -p $(registryPass) $(registry)
       cd docker; docker-compose build ; cd -
-    displayName: 'docker build'
+    displayName: "docker build"
   # Tags builded image with the "latest" tag if its "master" branch and push
   - script: |
-          docker tag conductor:server "$(registry)/$(conductorServer):latest"
-          docker tag conductor:ui "$(registry)/$(conductorUI):latest"
-    displayName: 'docker tag master as latest'
+      docker tag conductor:server "$(registry)/$(conductorServer):latest"
+      docker tag conductor:ui "$(registry)/$(conductorUI):latest"
+    displayName: "docker tag master as latest"
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
   - script: |
       docker login -u $(registryUser) -p $(registryPass) $(registry)
       docker push $(registry)/$(conductorServer):latest
       docker push $(registry)/$(conductorUI):latest
-    displayName: 'docker push master as latest'
+    displayName: "docker push master as latest"
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'master'))
