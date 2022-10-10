@@ -179,7 +179,15 @@ public class TaskModel {
 
     @JsonIgnore
     public Map<String, Object> getInputData() {
-        return externalInputPayloadStoragePath != null ? inputPayload : inputData;
+        if (!inputPayload.isEmpty() && !inputData.isEmpty()) {
+            inputData.putAll(inputPayload);
+            inputPayload = new HashMap<>();
+            return inputData;
+        } else if (inputPayload.isEmpty()) {
+            return inputData;
+        } else {
+            return inputPayload;
+        }
     }
 
     @JsonIgnore
@@ -389,7 +397,15 @@ public class TaskModel {
 
     @JsonIgnore
     public Map<String, Object> getOutputData() {
-        return externalOutputPayloadStoragePath != null ? outputPayload : outputData;
+        if (!outputPayload.isEmpty() && !outputData.isEmpty()) {
+            outputData.putAll(outputPayload);
+            outputPayload = new HashMap<>();
+            return outputData;
+        } else if (outputPayload.isEmpty()) {
+            return outputData;
+        } else {
+            return outputPayload;
+        }
     }
 
     @JsonIgnore
@@ -755,7 +771,8 @@ public class TaskModel {
                 && Objects.equals(getReasonForIncompletion(), taskModel.getReasonForIncompletion())
                 && Objects.equals(getWorkerId(), taskModel.getWorkerId())
                 && Objects.equals(getWaitTimeout(), taskModel.getWaitTimeout())
-                && Objects.equals(getOutputData(), taskModel.getOutputData())
+                && Objects.equals(outputData, taskModel.outputData)
+                && Objects.equals(outputPayload, taskModel.outputPayload)
                 && Objects.equals(getWorkflowTask(), taskModel.getWorkflowTask())
                 && Objects.equals(getDomain(), taskModel.getDomain())
                 && Objects.equals(getInputMessage(), taskModel.getInputMessage())
@@ -800,7 +817,8 @@ public class TaskModel {
                 getCallbackAfterSeconds(),
                 getWorkerId(),
                 getWaitTimeout(),
-                getOutputData(),
+                outputData,
+                outputPayload,
                 getWorkflowTask(),
                 getDomain(),
                 getInputMessage(),
@@ -854,5 +872,11 @@ public class TaskModel {
         if (outputData != null) {
             this.outputData.putAll(outputData);
         }
+    }
+
+    public void clearOutput() {
+        this.outputData.clear();
+        this.outputPayload.clear();
+        this.externalOutputPayloadStoragePath = null;
     }
 }

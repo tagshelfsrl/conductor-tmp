@@ -32,11 +32,15 @@ class SwitchTaskSpec extends AbstractSpecification {
     @Shared
     def COND_TASK_WF = "ConditionalTaskWF"
 
+    @Shared
+    def SWITCH_NODEFAULT_WF = "SwitchWithNoDefaultCaseWF"
+
     def setup() {
         //initialization code for each feature
         workflowTestUtil.registerWorkflows('simple_switch_task_integration_test.json',
                 'switch_and_fork_join_integration_test.json',
-                'conditional_switch_task_workflow_integration_test.json')
+                'conditional_switch_task_workflow_integration_test.json',
+                'switch_with_no_default_case_integration_test.json')
     }
 
     def "Test simple switch workflow"() {
@@ -47,9 +51,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         input['case'] = 'c'
 
         when: "A switch workflow is started with the workflow input"
-        def workflowInstanceId = workflowExecutor.startWorkflow(SWITCH_WF, 1,
+        def workflowInstanceId = startWorkflow(SWITCH_WF, 1,
                 'switch_workflow', input,
-                null, null, null)
+                null)
 
         then: "verify that the workflow is in running state"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
@@ -118,9 +122,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         input['case'] = 'c'
 
         when: "A switch workflow is started with the workflow input"
-        def workflowInstanceId = workflowExecutor.startWorkflow(FORK_JOIN_SWITCH_WF, 1,
+        def workflowInstanceId = startWorkflow(FORK_JOIN_SWITCH_WF, 1,
                 'switch_forkjoin', input,
-                null, null, null)
+                null)
 
         then: "verify that the workflow is in running state"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
@@ -183,6 +187,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         when: "the task 'integration_task_20' is polled and completed"
         def polledAndCompletedTask20Try1 = workflowTestUtil.pollAndCompleteTask('integration_task_20', 'task1.integration.worker')
 
+        and: "the workflow is evaluated"
+        sweep(workflowInstanceId)
+
         then: "verify that the task is completed and acknowledged"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask20Try1)
 
@@ -205,9 +212,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         input['param2'] = 'two'
 
         when: "A conditional workflow is started with the workflow input"
-        def workflowInstanceId = workflowExecutor.startWorkflow(COND_TASK_WF, 1,
+        def workflowInstanceId = startWorkflow(COND_TASK_WF, 1,
                 'conditional_default', input,
-                null, null, null)
+                null)
 
         then: "verify that the workflow is running and the default condition case was executed"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
@@ -246,9 +253,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         input['param2'] = caseValue
 
         when: "A conditional workflow is started with the workflow input"
-        def workflowInstanceId = workflowExecutor.startWorkflow(COND_TASK_WF, 1,
+        def workflowInstanceId = startWorkflow(COND_TASK_WF, 1,
                 workflowCorrelationId, input,
-                null, null, null)
+                null)
 
         then: "verify that the workflow is running and the 'nested' and '#caseValue' condition case was executed"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
@@ -295,9 +302,9 @@ class SwitchTaskSpec extends AbstractSpecification {
         input['finalCase'] = 'notify'
 
         when: "A conditional workflow is started with the workflow input"
-        def workflowInstanceId = workflowExecutor.startWorkflow(COND_TASK_WF, 1,
+        def workflowInstanceId = startWorkflow(COND_TASK_WF, 1,
                 'conditional_three', input,
-                null, null, null)
+                null)
 
         then: "verify that the workflow is running and the 'three' condition case was executed"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
@@ -346,6 +353,44 @@ class SwitchTaskSpec extends AbstractSpecification {
             tasks[2].outputData['evaluationResult'] == ['notify']
             tasks[3].taskType == 'integration_task_4'
             tasks[3].status == Task.Status.COMPLETED
+        }
+    }
+
+    def "Test switch with no default case workflow"() {
+        given: "Workflow input"
+        Map input = new HashMap<String, Object>()
+        input['param1'] = 'p1'
+        input['param2'] = 'p2'
+
+        when: "A switch workflow is started with the workflow input"
+        def workflowInstanceId = startWorkflow(SWITCH_NODEFAULT_WF, 1,
+                'switch_no_default_workflow', input,
+                null)
+
+        then: "verify that the workflow is in running state"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 2
+            tasks[0].taskType == 'SWITCH'
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[1].taskType == 'integration_task_2'
+            tasks[1].status == Task.Status.SCHEDULED
+        }
+
+        when: "the task 'integration_task_2' is polled and completed"
+        def polledAndCompletedTaskTry = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'task1.integration.worker')
+
+        then: "verify that the task is completed and acknowledged"
+        verifyPolledAndAcknowledgedTask(polledAndCompletedTaskTry)
+
+        and: "verify that the 'integration_task_2' is COMPLETED and the workflow is in COMPLETED state"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.COMPLETED
+            tasks.size() == 2
+            tasks[0].taskType == 'SWITCH'
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[1].taskType == 'integration_task_2'
+            tasks[1].status == Task.Status.COMPLETED
         }
     }
 }

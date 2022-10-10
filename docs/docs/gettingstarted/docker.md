@@ -137,13 +137,13 @@ This image at `/docker/serverAndUI` is provided to illustrate starting both the 
 
     1. When you run Elasticsearch, sometimes the health remains in Yellow state. Conductor server by default requires
        Green state to run when indexing is enabled. To work around this, you can use the following property: 
-       `conductor.elasticsearch.clusteHealthColor=yellow` Reference: [Issue 2262](https://github.com/Netflix/conductor/issues/2262)
+       `conductor.elasticsearch.clusterHealthColor=yellow` Reference: [Issue 2262](https://github.com/Netflix/conductor/issues/2262)
 
 
 
 #### Elasticsearch timeout
 Standalone(single node) elasticsearch has a yellow status which will cause timeout for conductor server (Required: Green).
-Spin up a cluster (more than one) to prevent timeout or use config option `conductor.elasticsearch.clusteHealthColor=yellow`.
+Spin up a cluster (more than one) to prevent timeout or use config option `conductor.elasticsearch.clusterHealthColor=yellow`.
 
 See issue: https://github.com/Netflix/conductor/issues/2262
 
@@ -160,12 +160,12 @@ It may takes some time for conductor server to start. Please check server log fo
 Elasticsearch is optional, please be aware that disable it will make most of the conductor UI not functional.
 
 ##### How to enable Elasticsearch
-* Set `workflow.indexing.enabled=true` in your_config.properties
+* Set `conductor.indexing.enabled=true` in your_config.properties
 * Add config related to elasticsearch
   E.g.: `conductor.elasticsearch.url=http://es:9200`
 
 ##### How to disable Elasticsearch
-* Set `workflow.indexing.enabled=false` in your_config.properties
+* Set `conductor.indexing.enabled=false` in your_config.properties
 * Comment out all the config related to elasticsearch
 E.g.: `conductor.elasticsearch.url=http://es:9200`
 
