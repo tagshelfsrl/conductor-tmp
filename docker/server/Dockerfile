@@ -23,6 +23,11 @@ FROM eclipse-temurin:11-jre-focal
 
 LABEL maintainer="Netflix OSS <conductor@netflix.com>"
 
+# Install required OS deps
+RUN apt-get update && \
+    apt-get install unzip -y && \
+    rm -rf /var/lib/apt/lists/*
+
 # Make app folders
 RUN mkdir -p /app/config /app/logs /app/libs
 

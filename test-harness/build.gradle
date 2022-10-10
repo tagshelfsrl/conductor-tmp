@@ -7,7 +7,8 @@ dependencies {
     testImplementation project(':conductor-core')
     testImplementation project(':conductor-redis-persistence')
     testImplementation project(':conductor-cassandra-persistence')
-    testImplementation project(':conductor-es6-persistence')
+    // testImplementation project(':conductor-es6-persistence')
+    // testImplementation project(':conductor-es7-persistence')
     testImplementation project(':conductor-grpc-server')
     testImplementation project(':conductor-client')
     testImplementation project(':conductor-grpc-client')
@@ -40,4 +41,5 @@ dependencies {
     testImplementation "org.junit.vintage:junit-vintage-engine"
     testImplementation "javax.ws.rs:javax.ws.rs-api:${revJAXRS}"
     testImplementation "org.glassfish.jersey.core:jersey-common:${revJerseyCommon}"
+    runtimeOnly group: 'com.netflix.conductor', name: 'conductor-es7-persistence', version: '3.11.3'
 }
