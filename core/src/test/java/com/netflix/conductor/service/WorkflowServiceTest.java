@@ -36,16 +36,12 @@ import com.netflix.conductor.common.run.Workflow;
 import com.netflix.conductor.common.run.WorkflowSummary;
 import com.netflix.conductor.core.exception.NotFoundException;
 import com.netflix.conductor.core.execution.WorkflowExecutor;
+import com.netflix.conductor.core.operation.StartWorkflowOperation;
 
 import static com.netflix.conductor.TestUtils.getConstraintViolationMessages;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -65,6 +61,11 @@ public class WorkflowServiceTest {
         }
 
         @Bean
+        public StartWorkflowOperation startWorkflowOperation() {
+            return mock(StartWorkflowOperation.class);
+        }
+
+        @Bean
         public ExecutionService executionService() {
             return mock(ExecutionService.class);
         }
@@ -78,8 +79,10 @@ public class WorkflowServiceTest {
         public WorkflowService workflowService(
                 WorkflowExecutor workflowExecutor,
                 ExecutionService executionService,
-                MetadataService metadataService) {
-            return new WorkflowServiceImpl(workflowExecutor, executionService, metadataService);
+                MetadataService metadataService,
+                StartWorkflowOperation startWorkflowOperation) {
+            return new WorkflowServiceImpl(
+                    workflowExecutor, executionService, metadataService, startWorkflowOperation);
         }
     }
 
@@ -176,12 +179,30 @@ public class WorkflowServiceTest {
 
     @Test
     public void testDeleteWorkflow() {
-        workflowService.deleteWorkflow("w123", true);
-        verify(executionService, times(1)).removeWorkflow(anyString(), anyBoolean());
+        workflowService.deleteWorkflow("w123", false);
+        verify(executionService, times(1)).removeWorkflow(anyString(), eq(false));
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testInvalidDeleteWorkflow() {
+        try {
+            workflowService.deleteWorkflow(null, false);
+        } catch (ConstraintViolationException ex) {
+            assertEquals(1, ex.getConstraintViolations().size());
+            Set<String> messages = getConstraintViolationMessages(ex.getConstraintViolations());
+            assertTrue(messages.contains("WorkflowId cannot be null or empty."));
+            throw ex;
+        }
+    }
+
+    @Test
+    public void testArchiveWorkflow() {
+        workflowService.deleteWorkflow("w123", true);
+        verify(executionService, times(1)).removeWorkflow(anyString(), eq(true));
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testInvalidArchiveWorkflow() {
         try {
             workflowService.deleteWorkflow(null, true);
         } catch (ConstraintViolationException ex) {

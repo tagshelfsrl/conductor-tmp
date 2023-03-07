@@ -18,6 +18,7 @@ import com.netflix.conductor.common.metadata.tasks.Task
 import com.netflix.conductor.common.metadata.tasks.TaskDef
 import com.netflix.conductor.common.metadata.tasks.TaskType
 import com.netflix.conductor.common.run.Workflow
+import com.netflix.conductor.core.execution.tasks.Join
 import com.netflix.conductor.core.execution.tasks.SubWorkflow
 import com.netflix.conductor.test.base.AbstractSpecification
 import com.netflix.conductor.test.utils.MockExternalPayloadStorage
@@ -57,6 +58,9 @@ class ExternalPayloadStorageSpec extends AbstractSpecification {
 
     @Autowired
     SubWorkflow subWorkflowTask
+
+    @Autowired
+    Join joinTask
 
     @Autowired
     MockExternalPayloadStorage mockExternalPayloadStorage
@@ -296,6 +300,7 @@ class ExternalPayloadStorageSpec extends AbstractSpecification {
         }
 
         when: "the first task of the left fork is polled and completed"
+        def joinTaskId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("fanouttask_join").taskId
         def polledAndAckTask = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'task1.integration.worker')
 
         then: "verify that the 'integration_task_1' was polled and acknowledged"
@@ -349,7 +354,10 @@ class ExternalPayloadStorageSpec extends AbstractSpecification {
         then: "verify that the 'integration_task_3' was polled and acknowledged"
         verifyPolledAndAcknowledgedLargePayloadTask(polledAndAckLargePayloadTask)
 
-        and: "task is completed and the next task after join in scheduled"
+        when: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinTaskId)
+
+        then: "task is completed and the next task after join in scheduled"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
             status == Workflow.WorkflowStatus.RUNNING
             tasks.size() == 6
@@ -849,6 +857,108 @@ class ExternalPayloadStorageSpec extends AbstractSpecification {
             tasks[1].externalOutputPayloadStoragePath == null
             output1.putAll(output2)
             verifyPayload(output1, tasks[1].outputData)
+        }
+    }
+
+    def "Test fork join workflow exceed external storage limit should fail the task and workflow"() {
+
+        given: "An existing fork join workflow definition"
+        metadataService.getWorkflowDef(FORK_JOIN_WF, 1)
+
+        and: "input required to start large payload workflow"
+        def correlationId = 'fork_join_external_storage'
+        String workflowInputPath = uploadInitialWorkflowInput()
+
+        when: "the workflow is started"
+        def workflowInstanceId = startWorkflow(FORK_JOIN_WF, 1, correlationId, null, workflowInputPath)
+
+        then: "verify that the workflow is in a RUNNING state"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 4
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[0].taskType == 'FORK'
+            tasks[1].status == Task.Status.SCHEDULED
+            tasks[1].taskType == 'integration_task_1'
+            tasks[2].status == Task.Status.SCHEDULED
+            tasks[2].taskType == 'integration_task_2'
+            tasks[3].status == Task.Status.IN_PROGRESS
+            tasks[3].taskType == 'JOIN'
+        }
+
+        when: "the first task of the left fork is polled and completed"
+        def polledAndAckTask = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'task1.integration.worker')
+        def joinTaskId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("fanouttask_join").taskId
+
+        then: "verify that the 'integration_task_1' was polled and acknowledged"
+        verifyPolledAndAcknowledgedTask(polledAndAckTask)
+
+        and: "task is completed and the next task in the fork is scheduled"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 5
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[0].taskType == 'FORK'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[1].taskType == 'integration_task_1'
+            tasks[2].status == Task.Status.SCHEDULED
+            tasks[2].taskType == 'integration_task_2'
+            tasks[3].status == Task.Status.IN_PROGRESS
+            tasks[3].taskType == 'JOIN'
+            tasks[4].status == Task.Status.SCHEDULED
+            tasks[4].taskType == 'integration_task_3'
+        }
+
+        when: "the first task of the right fork is polled and completed with external payload storage"
+        String taskOutputPath = "${UUID.randomUUID()}.json"
+        mockExternalPayloadStorage.upload(taskOutputPath, mockExternalPayloadStorage.createLargePayload(500))
+        def polledAndAckLargePayloadTask = workflowTestUtil.pollAndCompleteLargePayloadTask('integration_task_2', 'task2.integration.worker', taskOutputPath)
+
+        then: "verify that the 'integration_task_2' was polled and acknowledged"
+        verifyPolledAndAcknowledgedLargePayloadTask(polledAndAckLargePayloadTask)
+
+        and: "task is completed and the workflow is in running state"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 5
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[0].taskType == 'FORK'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[1].taskType == 'integration_task_1'
+            tasks[2].status == Task.Status.COMPLETED
+            tasks[2].taskType == 'integration_task_2'
+            tasks[3].status == Task.Status.IN_PROGRESS
+            tasks[3].taskType == 'JOIN'
+            tasks[4].status == Task.Status.SCHEDULED
+            tasks[4].taskType == 'integration_task_3'
+        }
+
+        when: "the second task of the left fork is polled and completed with external payload storage"
+        taskOutputPath = "${UUID.randomUUID()}.json"
+        mockExternalPayloadStorage.upload(taskOutputPath, mockExternalPayloadStorage.createLargePayload(500))
+        polledAndAckLargePayloadTask = workflowTestUtil.pollAndCompleteLargePayloadTask('integration_task_3', 'task3.integration.worker', taskOutputPath)
+
+        then: "verify that the 'integration_task_3' was polled and acknowledged"
+        verifyPolledAndAcknowledgedLargePayloadTask(polledAndAckLargePayloadTask)
+
+        when: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinTaskId)
+
+        then: "task is completed and the join task is failed because of exceeding size limit"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.FAILED
+            tasks.size() == 5
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[0].taskType == 'FORK'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[1].taskType == 'integration_task_1'
+            tasks[2].status == Task.Status.COMPLETED
+            tasks[2].taskType == 'integration_task_2'
+            tasks[2].outputData.isEmpty()
+            tasks[3].status == Task.Status.FAILED_WITH_TERMINAL_ERROR
+            tasks[3].taskType == 'JOIN'
+            tasks[3].outputData.isEmpty()
+            !tasks[3].getExternalOutputPayloadStoragePath()
         }
     }
 

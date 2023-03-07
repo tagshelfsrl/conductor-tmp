@@ -246,16 +246,13 @@ public class Monitors {
                 StringUtils.defaultIfBlank(ownerApp, "unknown"));
     }
 
-    public static void recordRunningWorkflows(
-            long count, String name, String version, String ownerApp) {
+    public static void recordRunningWorkflows(long count, String name, String ownerApp) {
         gauge(
                 classQualifier,
                 "workflow_running",
                 count,
                 "workflowName",
                 name,
-                "version",
-                version,
                 "ownerApp",
                 StringUtils.defaultIfBlank(ownerApp, "unknown"));
     }
@@ -391,6 +388,11 @@ public class Monitors {
                         workflowType,
                         "ownerApp",
                         StringUtils.defaultIfBlank(ownerApp, "unknown"))
+                .record(duration, TimeUnit.MILLISECONDS);
+    }
+
+    public static void recordUnackTime(String workflowType, long duration) {
+        getTimer(classQualifier, "workflow_unack", "workflowName", workflowType)
                 .record(duration, TimeUnit.MILLISECONDS);
     }
 

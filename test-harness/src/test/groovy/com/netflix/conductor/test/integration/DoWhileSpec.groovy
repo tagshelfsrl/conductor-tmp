@@ -16,8 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired
 
 import com.netflix.conductor.common.metadata.tasks.Task
 import com.netflix.conductor.common.metadata.tasks.TaskDef
+import com.netflix.conductor.common.metadata.tasks.TaskResult
 import com.netflix.conductor.common.run.Workflow
 import com.netflix.conductor.common.utils.TaskUtils
+import com.netflix.conductor.core.execution.tasks.Join
 import com.netflix.conductor.core.execution.tasks.SubWorkflow
 import com.netflix.conductor.test.base.AbstractSpecification
 
@@ -26,18 +28,22 @@ import static com.netflix.conductor.test.util.WorkflowTestUtil.verifyPolledAndAc
 class DoWhileSpec extends AbstractSpecification {
 
     @Autowired
+    Join joinTask
+
+    @Autowired
     SubWorkflow subWorkflowTask
 
     def setup() {
-        workflowTestUtil.registerWorkflows("do_while_integration_test.json",
-                "do_while_multiple_integration_test.json",
-                "do_while_as_subtask_integration_test.json",
+        workflowTestUtil.registerWorkflows('do_while_integration_test.json',
+                'do_while_multiple_integration_test.json',
+                'do_while_as_subtask_integration_test.json',
                 'simple_one_task_sub_workflow_integration_test.json',
                 'do_while_iteration_fix_test.json',
-                "do_while_sub_workflow_integration_test.json",
-        "do_while_five_loop_over_integration_test.json",
-        "do_while_system_tasks.json",
-                "do_while_set_variable_fix.json")
+                'do_while_sub_workflow_integration_test.json',
+                'do_while_five_loop_over_integration_test.json',
+                'do_while_system_tasks.json',
+                'do_while_with_decision_task.json',
+                'do_while_set_variable_fix.json')
     }
 
     def "Test workflow with 2 iterations of five tasks"() {
@@ -275,6 +281,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second task"
+        def joinId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__1").taskId
         Tuple polledAndCompletedTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -299,6 +306,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing third task"
         Tuple polledAndCompletedTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinId)
 
         then: "Verify that the task was polled and acknowledged and workflow is in completed state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -363,6 +373,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second task"
+        def joinId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__1").taskId
         Tuple polledAndCompletedTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -387,6 +398,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing third task"
         Tuple polledAndCompletedTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinId)
 
         then: "Verify that the task was polled and acknowledged and workflow is in completed state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -528,6 +542,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second task"
+        def join1Id = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__1").taskId
         Tuple polledAndCompletedTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -552,6 +567,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing third task"
         Tuple polledAndCompletedTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, join1Id)
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -609,6 +627,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second iteration of second task"
+        def join2Id = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__2").taskId
         Tuple polledAndCompletedSecondIterationTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -643,6 +662,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing second iteration of third task"
         Tuple polledAndCompletedSecondIterationTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, join2Id)
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedSecondIterationTask2)
@@ -796,6 +818,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second task"
+        def joinId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__1").taskId
         Tuple polledAndCompletedTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -822,6 +845,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing third task"
         Tuple polledAndCompletedTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinId)
 
         then: "Verify that the task was polled and acknowledged and workflow is in completed state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -920,6 +946,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing second task"
+        def joinId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join__1").taskId
         Tuple polledAndCompletedTask1 = workflowTestUtil.pollAndCompleteTask('integration_task_1', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -946,6 +973,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         when: "Polling and completing third task"
         Tuple polledAndCompletedTask2 = workflowTestUtil.pollAndCompleteTask('integration_task_2', 'integration.test.worker')
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinId)
 
         then: "Verify that the task was polled and acknowledged and workflow is in completed state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -998,6 +1028,7 @@ class DoWhileSpec extends AbstractSpecification {
         }
 
         when: "Polling and completing first task in DO While"
+        def joinId = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).getTaskByRefName("join").taskId
         Tuple polledAndCompletedTask0 = workflowTestUtil.pollAndCompleteTask('integration_task_0', 'integration.test.worker')
 
         then: "Verify that the task was polled and acknowledged and workflow is in running state"
@@ -1048,6 +1079,9 @@ class DoWhileSpec extends AbstractSpecification {
 
         and: "the workflow is evaluated"
         sweep(workflowInstanceId)
+
+        and: "JOIN task is executed"
+        asyncSystemTaskExecutor.execute(joinTask, joinId)
 
         then: "Verify that the task was polled and acknowledged and workflow is in completed state"
         verifyPolledAndAcknowledgedTask(polledAndCompletedTask2)
@@ -1111,6 +1145,91 @@ class DoWhileSpec extends AbstractSpecification {
             tasks[1].inputData.get("value") == "0"
         }
     }
+
+    def "Test workflow with Do While task contains decision task"() {
+        given: "The loop condition is set to use set variable"
+        def workflowInput = new HashMap()
+        def array = new ArrayList()
+        array.add(1);
+        array.add(2);
+        workflowInput['list'] = array
+
+        when: "A do_while workflow is started"
+        def workflowInstanceId = startWorkflow("DO_While_with_Decision_task", 1, "looptest", workflowInput, null)
+
+        then: "Verify that the loop over task is waiting for the wait task to get completed"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 4
+            tasks[0].taskType == 'DO_WHILE'
+            tasks[0].status == Task.Status.IN_PROGRESS
+            tasks[1].taskType == 'INLINE'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[2].taskType == 'SWITCH'
+            tasks[2].status == Task.Status.COMPLETED
+            tasks[3].taskType == 'WAIT'
+            tasks[3].status == Task.Status.IN_PROGRESS
+        }
+
+        when: "The wait task is completed"
+        def waitTask = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).tasks[3]
+        waitTask.status = Task.Status.COMPLETED
+        workflowExecutor.updateTask(new TaskResult(waitTask))
+
+        then: "Verify that the next iteration is scheduled and workflow is in running state"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.RUNNING
+            tasks.size() == 8
+            tasks[0].taskType == 'DO_WHILE'
+            tasks[0].status == Task.Status.IN_PROGRESS
+            tasks[0].iteration == 2
+            tasks[1].taskType == 'INLINE'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[2].taskType == 'SWITCH'
+            tasks[2].status == Task.Status.COMPLETED
+            tasks[3].taskType == 'WAIT'
+            tasks[3].status == Task.Status.COMPLETED
+            tasks[4].taskType == 'INLINE'
+            tasks[4].status == Task.Status.COMPLETED
+            tasks[5].taskType == 'INLINE'
+            tasks[5].status == Task.Status.COMPLETED
+            tasks[6].taskType == 'SWITCH'
+            tasks[6].status == Task.Status.COMPLETED
+            tasks[7].taskType == 'WAIT'
+            tasks[7].status == Task.Status.IN_PROGRESS
+        }
+
+        when: "The wait task is completed"
+        waitTask = workflowExecutionService.getExecutionStatus(workflowInstanceId, true).tasks[7]
+        waitTask.status = Task.Status.COMPLETED
+        workflowExecutor.updateTask(new TaskResult(waitTask))
+
+        then: "Verify that the workflow is completed"
+        with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
+            status == Workflow.WorkflowStatus.COMPLETED
+            tasks.size() == 9
+            tasks[0].taskType == 'DO_WHILE'
+            tasks[0].status == Task.Status.COMPLETED
+            tasks[0].iteration == 2
+            tasks[1].taskType == 'INLINE'
+            tasks[1].status == Task.Status.COMPLETED
+            tasks[2].taskType == 'SWITCH'
+            tasks[2].status == Task.Status.COMPLETED
+            tasks[3].taskType == 'WAIT'
+            tasks[3].status == Task.Status.COMPLETED
+            tasks[4].taskType == 'INLINE'
+            tasks[4].status == Task.Status.COMPLETED
+            tasks[5].taskType == 'INLINE'
+            tasks[5].status == Task.Status.COMPLETED
+            tasks[6].taskType == 'SWITCH'
+            tasks[6].status == Task.Status.COMPLETED
+            tasks[7].taskType == 'WAIT'
+            tasks[7].status == Task.Status.COMPLETED
+            tasks[8].taskType == 'INLINE'
+            tasks[8].status == Task.Status.COMPLETED
+        }
+    }
+
 
     void verifyTaskIteration(Task task, int iteration) {
         assert task.getReferenceTaskName().endsWith(TaskUtils.getLoopOverTaskRefNameSuffix(task.getIteration()))
