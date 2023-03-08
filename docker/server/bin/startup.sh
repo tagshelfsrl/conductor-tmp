@@ -18,11 +18,11 @@ echo "Property file: $CONFIG_PROP"
 echo "Remote property file: $REMOTE_CONFIG_PROP"
 export config_file=
 
-if [ -n $REMOTE_CONFIG_PROP ]; then
+if [ -n "${REMOTE_CONFIG_PROP}" ]; then
   echo "Downloading remote config file..."
   aws s3 cp $REMOTE_CONFIG_PROP /app/config/config-remote.properties
   export config_file=/app/config/config-remote.properties
-elif [ -n "$CONFIG_PROP" ]; then
+elif [ -n "${CONFIG_PROP}" ]; then
   echo "Using config file..."
   export config_file=/app/config/$CONFIG_PROP
 else
