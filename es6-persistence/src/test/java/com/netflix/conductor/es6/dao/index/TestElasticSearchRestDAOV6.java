@@ -38,8 +38,7 @@ import com.netflix.conductor.es6.utils.TestUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TestElasticSearchRestDAOV6 extends ElasticSearchRestDaoBaseTest {
 
@@ -196,6 +195,84 @@ public class TestElasticSearchRestDAOV6 extends ElasticSearchRestDaoBaseTest {
     }
 
     @Test
+    public void shouldRemoveTask() {
+        WorkflowSummary workflowSummary =
+                TestUtils.loadWorkflowSnapshot(objectMapper, "workflow_summary");
+        indexDAO.indexWorkflow(workflowSummary);
+
+        // wait for workflow to be indexed
+        tryFindResults(() -> searchWorkflows(workflowSummary.getWorkflowId()), 1);
+
+        TaskSummary taskSummary =
+                TestUtils.loadTaskSnapshot(
+                        objectMapper, "task_summary", workflowSummary.getWorkflowId());
+        indexDAO.indexTask(taskSummary);
+
+        // Wait for the task to be indexed
+        List<String> tasks = tryFindResults(() -> searchTasks(taskSummary), 1);
+
+        indexDAO.removeTask(workflowSummary.getWorkflowId(), taskSummary.getTaskId());
+
+        tasks = tryFindResults(() -> searchTasks(taskSummary), 0);
+
+        assertTrue("Task was not removed.", tasks.isEmpty());
+    }
+
+    @Test
+    public void shouldAsyncRemoveTask() throws Exception {
+        WorkflowSummary workflowSummary =
+                TestUtils.loadWorkflowSnapshot(objectMapper, "workflow_summary");
+        indexDAO.indexWorkflow(workflowSummary);
+
+        // wait for workflow to be indexed
+        tryFindResults(() -> searchWorkflows(workflowSummary.getWorkflowId()), 1);
+
+        TaskSummary taskSummary =
+                TestUtils.loadTaskSnapshot(
+                        objectMapper, "task_summary", workflowSummary.getWorkflowId());
+        indexDAO.indexTask(taskSummary);
+
+        // Wait for the task to be indexed
+        List<String> tasks = tryFindResults(() -> searchTasks(taskSummary), 1);
+
+        indexDAO.asyncRemoveTask(workflowSummary.getWorkflowId(), taskSummary.getTaskId()).get();
+
+        tasks = tryFindResults(() -> searchTasks(taskSummary), 0);
+
+        assertTrue("Task was not removed.", tasks.isEmpty());
+    }
+
+    @Test
+    public void shouldNotRemoveTaskWhenNotAssociatedWithWorkflow() {
+        TaskSummary taskSummary = TestUtils.loadTaskSnapshot(objectMapper, "task_summary");
+        indexDAO.indexTask(taskSummary);
+
+        // Wait for the task to be indexed
+        List<String> tasks = tryFindResults(() -> searchTasks(taskSummary), 1);
+
+        indexDAO.removeTask("InvalidWorkflow", taskSummary.getTaskId());
+
+        tasks = tryFindResults(() -> searchTasks(taskSummary), 0);
+
+        assertFalse("Task was removed.", tasks.isEmpty());
+    }
+
+    @Test
+    public void shouldNotAsyncRemoveTaskWhenNotAssociatedWithWorkflow() throws Exception {
+        TaskSummary taskSummary = TestUtils.loadTaskSnapshot(objectMapper, "task_summary");
+        indexDAO.indexTask(taskSummary);
+
+        // Wait for the task to be indexed
+        List<String> tasks = tryFindResults(() -> searchTasks(taskSummary), 1);
+
+        indexDAO.asyncRemoveTask("InvalidWorkflow", taskSummary.getTaskId()).get();
+
+        tasks = tryFindResults(() -> searchTasks(taskSummary), 0);
+
+        assertFalse("Task was removed.", tasks.isEmpty());
+    }
+
+    @Test
     public void shouldAddTaskExecutionLogs() {
         List<TaskExecLog> logs = new ArrayList<>();
         String taskId = uuid();
@@ -310,6 +387,29 @@ public class TestElasticSearchRestDAOV6 extends ElasticSearchRestDaoBaseTest {
         assertEquals(counts, result);
     }
 
+    @Test
+    public void shouldFindWorkflow() {
+        WorkflowSummary workflowSummary =
+                TestUtils.loadWorkflowSnapshot(objectMapper, "workflow_summary");
+        indexDAO.indexWorkflow(workflowSummary);
+
+        // wait for workflow to be indexed
+        List<WorkflowSummary> workflows =
+                tryFindResults(() -> searchWorkflowSummary(workflowSummary.getWorkflowId()), 1);
+        assertEquals(1, workflows.size());
+        assertEquals(workflowSummary, workflows.get(0));
+    }
+
+    @Test
+    public void shouldFindTask() {
+        TaskSummary taskSummary = TestUtils.loadTaskSnapshot(objectMapper, "task_summary");
+        indexDAO.indexTask(taskSummary);
+
+        List<TaskSummary> tasks = tryFindResults(() -> searchTaskSummary(taskSummary));
+        assertEquals(1, tasks.size());
+        assertEquals(taskSummary, tasks.get(0));
+    }
+
     private long tryGetCount(Supplier<Long> countFunction, int resultsCount) {
         long result = 0;
         for (int i = 0; i < 20; i++) {
@@ -385,6 +485,12 @@ public class TestElasticSearchRestDAOV6 extends ElasticSearchRestDaoBaseTest {
                 .getResults();
     }
 
+    private List<WorkflowSummary> searchWorkflowSummary(String workflowId) {
+        return indexDAO.searchWorkflowSummary(
+                        "", "workflowId:\"" + workflowId + "\"", 0, 100, Collections.emptyList())
+                .getResults();
+    }
+
     private List<String> searchWorkflows(String workflowName, String status) {
         List<String> sortOptions = new ArrayList<>();
         sortOptions.add("startTime:DESC");
@@ -399,6 +505,16 @@ public class TestElasticSearchRestDAOV6 extends ElasticSearchRestDaoBaseTest {
 
     private List<String> searchTasks(TaskSummary taskSummary) {
         return indexDAO.searchTasks(
+                        "",
+                        "workflowId:\"" + taskSummary.getWorkflowId() + "\"",
+                        0,
+                        100,
+                        Collections.emptyList())
+                .getResults();
+    }
+
+    private List<TaskSummary> searchTaskSummary(TaskSummary taskSummary) {
+        return indexDAO.searchTaskSummary(
                         "",
                         "workflowId:\"" + taskSummary.getWorkflowId() + "\"",
                         0,

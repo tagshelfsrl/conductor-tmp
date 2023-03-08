@@ -190,7 +190,7 @@ public class ExternalPayloadStorageUtils {
                         break;
                 }
             }
-        } catch (TransientException te) {
+        } catch (TransientException | TerminateWorkflowException te) {
             throw te;
         } catch (Exception e) {
             LOGGER.error(
@@ -205,7 +205,7 @@ public class ExternalPayloadStorageUtils {
             byte[] payloadBytes, long payloadSize, ExternalPayloadStorage.PayloadType payloadType) {
         ExternalStorageLocation location =
                 externalPayloadStorage.getLocation(
-                        ExternalPayloadStorage.Operation.WRITE, payloadType, "");
+                        ExternalPayloadStorage.Operation.WRITE, payloadType, "", payloadBytes);
         externalPayloadStorage.upload(
                 location.getPath(), new ByteArrayInputStream(payloadBytes), payloadSize);
         return location.getPath();
@@ -221,7 +221,6 @@ public class ExternalPayloadStorageUtils {
         } else {
             task.setOutputData(new HashMap<>());
         }
-        throw new TerminateWorkflowException(errorMsg, WorkflowModel.Status.FAILED, task);
     }
 
     @VisibleForTesting
