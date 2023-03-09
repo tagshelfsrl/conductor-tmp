@@ -7,16 +7,15 @@ on:
       - development
 
 jobs:
-  # Builds docker image but does not push it.
   build-server:
-    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml@v1.11.0
     secrets: inherit
     with:
       images: ${{github.repository}}
       file: docker/server/Dockerfile
 
   build-web:
-    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml@v1.11.0
     secrets: inherit
     with:
       images: ${{github.repository}}
