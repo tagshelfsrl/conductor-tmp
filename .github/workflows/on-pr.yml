@@ -9,15 +9,15 @@ on:
 jobs:
   # Builds docker image but does not push it.
   build-server:
-    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.10.0
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml
     secrets: inherit
     with:
       images: ${{github.repository}}
-      context: docker/server
+      file: docker/server/Dockerfile
 
   build-web:
-    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.10.0
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push-v2.yml
     secrets: inherit
     with:
       images: ${{github.repository}}
-      context: docker/ui
+      file: docker/ui/Dockerfile
