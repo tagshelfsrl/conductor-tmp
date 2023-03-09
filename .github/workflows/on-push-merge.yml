@@ -1,0 +1,40 @@
+###############################################################################
+# When a PR is merged or a push is received on master or development branches
+# this action is triggered.
+#
+# The intention of this action is to produce a version/release and tag the
+# commit with a SemVer like github tag.
+#
+# FAQ:
+#   How releases tag get generated?
+#     Ask in #development or read docs for semantic-release library.
+#     https://semantic-release.gitbook.io/semantic-release/
+###############################################################################
+name: "On Push/Merge"
+
+on:
+  push:
+    branches:
+      - master
+      - development
+
+jobs:
+  build-server:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.11.1
+    secrets: inherit
+    with:
+      images: tagshelfsrl/conductor-server
+      file: docker/server/Dockerfile
+
+  build-web:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.11.1
+    secrets: inherit
+    with:
+      images: tagshelfsrl/conductor-web
+      file: docker/ui/Dockerfile
+
+  release:
+    needs: [build-server, build-web]
+    uses: tagshelfsrl/github-actions/.github/workflows/semver.yml@v1.11.1
+    secrets:
+      token: ${{secrets.PAT_TOKEN}}
