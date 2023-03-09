@@ -1,0 +1,22 @@
+name: "On PR"
+
+on:
+  pull_request:
+    branches:
+      - master
+      - development
+
+jobs:
+  build-server:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.11.1
+    secrets: inherit
+    with:
+      images: tagshelfsrl/conductor-server
+      file: docker/server/Dockerfile
+
+  build-web:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.11.1
+    secrets: inherit
+    with:
+      images: tagshelfsrl/conductor-web
+      file: docker/ui/Dockerfile

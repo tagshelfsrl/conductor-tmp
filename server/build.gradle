@@ -21,7 +21,6 @@ dependencies {
     implementation project(':conductor-core')
     implementation project(':conductor-redis-persistence')
     implementation project(':conductor-cassandra-persistence')
-    implementation project(':conductor-es6-persistence')
     implementation project(':conductor-grpc-server')
     implementation project(':conductor-redis-lock')
     implementation project(':conductor-redis-concurrency-limit')
@@ -43,6 +42,8 @@ dependencies {
     implementation "org.springdoc:springdoc-openapi-ui:${revOpenapi}"
 
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${revJAXB}"
+    runtimeOnly group: 'com.netflix.conductor', name: 'conductor-postgres-persistence', version: '3.11.3'
+    runtimeOnly group: 'com.netflix.conductor', name: 'conductor-es7-persistence', version: '3.11.3'
 
     testImplementation project(':conductor-rest')
     testImplementation project(':conductor-common')
