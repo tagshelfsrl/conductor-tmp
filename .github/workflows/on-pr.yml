@@ -1,0 +1,23 @@
+name: "On PR"
+
+on:
+  pull_request:
+    branches:
+      - master
+      - development
+
+jobs:
+  # Builds docker image but does not push it.
+  build-server:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.10.0
+    secrets: inherit
+    with:
+      images: ${{github.repository}}
+      context: docker/server
+
+  build-web:
+    uses: tagshelfsrl/github-actions/.github/workflows/docker-build-push.yml@v1.10.0
+    secrets: inherit
+    with:
+      images: ${{github.repository}}
+      context: docker/ui
